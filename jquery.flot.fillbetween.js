@@ -33,6 +33,67 @@ plugin, possibly some code could be shared.
     };
     
     function init(plot) {
+	
+		/**
+		 * Creates a read-only point object with only getter methods.
+		 */
+		var immutablePoint = function( x, y )
+		{
+			var point = {
+				x: x,
+				y: y
+			};
+			
+			return {
+				getX: function() { return point.x; },
+				getY: function() { return point.y; }
+			};
+		};
+	
+		function createAreaPolygonFromSeries( topSeries, bottomSeries )
+		{
+			/**
+			 * Creates a read-only polygon object with only getter methods.
+			 */
+			var immutableAreaPolygon = function( outlinePoints, series )
+			{
+				var areaPolygon = {
+					outline: outlinePoints,
+					series: series
+				};
+				
+				return {
+					getOutline: function() {
+						return areaPolygon.outline;
+					},
+					getSeries: function() {
+						return areaPolygon.series;
+					}
+				};
+			};
+			
+			var outline = [];
+			
+			// Top data points in normal order
+			for ( var i in topSeries.data )
+			{
+				var topDatapoint = topSeries.data[ i ];
+				outline.push( immutablePoint( topDatapoint[ 0 ], topDatapoint[ 1 ] ) );
+			}
+			
+			// Bottom data points in reverse order
+			for ( var j = bottomSeries.data.length - 1; j >= 0; --j )
+			{
+				var bottomDatapoint = bottomSeries.data[ j ];
+				outline.push( immutablePoint( bottomDatapoint[ 0 ], bottomDatapoint[ 1 ] ) );
+			}
+			
+			return immutableAreaPolygon( outline, arguments );
+		}
+	
+		// All the areas represented as polygons
+		var areaPolygons = [];
+	
         function findBottomSeries(s, allseries) {
             var i;
             for (i = 0; i < allseries.length; ++i) {
@@ -60,6 +121,9 @@ plugin, possibly some code could be shared.
             if (!other)
                 return;
 
+			// Create area polygons here
+			areaPolygons.push( createAreaPolygonFromSeries( s, other ) );
+				
             var ps = datapoints.pointsize,
                 points = datapoints.points,
                 otherps = other.datapoints.pointsize,
@@ -171,7 +235,97 @@ plugin, possibly some code could be shared.
             datapoints.points = newpoints;
         }
         
+		/**
+		 * Returns the filled areas over which the mouse is currently
+		 * hovering. Empty array will be returned if the mouse isn't hovering
+		 * over any filled area.
+		 * Parameters:
+		 *  plot - the plot object
+		 *  mouseX - mouse location on X-axis (plot coordinates)
+		 *  mouseY - mouse location on Y-axis (plot coordinates)
+		 * Return format:
+		 * [ 
+		 *   [ seriesA, seriesB ], 
+		 *   [ ..., ... ], 
+		 *   ... 
+		 * ]
+		 */
+		function isHoveringOverFilledArea( mouseX, mouseY )
+		{
+			var immutableSegment = function( pointA, pointB )
+			{
+				var segment = {
+					a: pointA,
+					b: pointB
+				};
+				
+				return {
+					getA: function() { return segment.a; },
+					getB: function() { return segment.b; }
+				};
+			};
+		
+			// Check whether two segments intersect
+			var intersect = function( segmentA, segmentB )
+			{
+				var ccw = function( pointA, pointB, pointC )
+				{
+					return ( (pointB.getX() - pointA.getX())*(pointC.getY() - pointA.getY()) - 
+						(pointB.getY() - pointA.getY())*(pointC.getX() - pointA.getX())) > 0;
+				}
+				var pointAA = segmentA.getA();
+				var pointAB = segmentA.getB();
+				var pointBA = segmentB.getA();
+				var pointBB = segmentB.getB();
+				return (ccw( pointAA, pointBA, pointBB ) != ccw( pointAB, pointBA, pointBB )) &&
+					(ccw( pointAA, pointAB, pointBA ) != ccw( pointAA, pointAB, pointBB ));
+			}
+		
+			var hoverPoint = immutablePoint( mouseX, mouseY );
+			var hoverAreas = [];
+		
+			for ( var i in areaPolygons )
+			{
+				var polygon = areaPolygons[ i ];
+				var points = polygon.getOutline();
+				var series = polygon.getSeries();
+				
+				var farEastEdge = series[ 0 ].xaxis.datamax > series[ 1 ].xaxis.datamax ?
+					series[ 0 ].xaxis.datamax + 1 : series[ 1 ].xaxis.datamax + 1;
+				var rayCastSegment = immutableSegment( hoverPoint, immutablePoint( farEastEdge, mouseY ) );
+				
+				var intersections = 0;
+				for ( var j = 0; j < points.length; ++j )
+				{
+					var firstPoint = points[ j ];
+					var secondPoint = j < (points.length - 1) ? secondPoint = points[ j + 1 ] : secondPoint = points[ 0 ];
+					if ( intersect( rayCastSegment, immutableSegment( firstPoint, secondPoint ) ) ) intersections++;
+				}
+				
+				if ( intersections % 2 == 1 )
+				{
+					hoverAreas.push( series );
+				}
+			}
+			
+			return hoverAreas;
+		}
+		
+		var checkForFillAreaHover = function( plot, eventHolder )
+		{
+			// bind to the existing plothover event
+			$( plot.getPlaceholder() ).bind( 'plothover', function( event, pos, item )
+			{
+				var areas = isHoveringOverFilledArea( pos.x, pos.y );
+				if ( areas.length > 0 )
+				{
+					$( plot.getPlaceholder() ).trigger( 'fillareahover', [ areas ] );
+				}
+			} );
+		}
+		
         plot.hooks.processDatapoints.push(computeFillBottoms);
+		plot.hooks.bindEvents.push( checkForFillAreaHover );
     }
     
     $.plot.plugins.push({
