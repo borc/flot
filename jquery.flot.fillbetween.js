@@ -81,7 +81,7 @@ plugin, possibly some code could be shared.
 				outline.push( immutablePoint( topDatapoint[ 0 ], topDatapoint[ 1 ] ) );
 			}
 			
-			// Bottom data points in reverse order
+			// Bottom data points in reverse order (to produce a well-defined polygon)
 			for ( var j = bottomSeries.data.length - 1; j >= 0; --j )
 			{
 				var bottomDatapoint = bottomSeries.data[ j ];
@@ -311,6 +311,9 @@ plugin, possibly some code could be shared.
 			return hoverAreas;
 		}
 		
+		/**
+		 * Set up area hover and area click event triggering.
+		 */
 		var checkForFillAreaHover = function( plot, eventHolder )
 		{
 			// Require the 'hoverableFill' option
