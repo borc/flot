@@ -313,13 +313,26 @@ plugin, possibly some code could be shared.
 		
 		var checkForFillAreaHover = function( plot, eventHolder )
 		{
-			// bind to the existing plothover event
+			// Bind to the existing plothover event. This way the 'hoverable'
+			// attribute is taken into account (and we get pre-calculated 
+			// mouse cursor positions easily).
 			$( plot.getPlaceholder() ).bind( 'plothover', function( event, pos, item )
 			{
 				var areas = isHoveringOverFilledArea( pos.x, pos.y );
 				if ( areas.length > 0 )
 				{
 					$( plot.getPlaceholder() ).trigger( 'fillareahover', [ areas ] );
+				}
+			} );
+			
+			// Bind to the plotclick event. This way the 'clickable' attribute
+			// is taken into account.
+			$( plot.getPlaceholder() ).bind( 'plotclick', function( event, pos, item )
+			{
+				var areas = isHoveringOverFilledArea( pos.x, pos.y );
+				if ( areas.length > 0 )
+				{
+					$( plot.getPlaceholder() ).trigger( 'fillareaclick', [ areas ] );
 				}
 			} );
 		}
