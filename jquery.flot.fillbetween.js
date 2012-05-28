@@ -313,28 +313,36 @@ plugin, possibly some code could be shared.
 		
 		var checkForFillAreaHover = function( plot, eventHolder )
 		{
-			// Bind to the existing plothover event. This way the 'hoverable'
-			// attribute is taken into account (and we get pre-calculated 
-			// mouse cursor positions easily).
-			$( plot.getPlaceholder() ).bind( 'plothover', function( event, pos, item )
+			// Require the 'hoverableFill' option
+			if ( plot.getOptions().grid.hoverableFill )
 			{
-				var areas = isHoveringOverFilledArea( pos.x, pos.y );
-				if ( areas.length > 0 )
+				// Bind to the existing plothover event. This way the 'hoverable'
+				// attribute is taken into account (and we get pre-calculated 
+				// mouse cursor positions easily).
+				$( plot.getPlaceholder() ).bind( 'plothover', function( event, pos, item )
 				{
-					$( plot.getPlaceholder() ).trigger( 'fillareahover', [ areas ] );
-				}
-			} );
+					var areas = isHoveringOverFilledArea( pos.x, pos.y );
+					if ( areas.length > 0 )
+					{
+						$( plot.getPlaceholder() ).trigger( 'fillareahover', [ areas ] );
+					}
+				} );
+			}
 			
-			// Bind to the plotclick event. This way the 'clickable' attribute
-			// is taken into account.
-			$( plot.getPlaceholder() ).bind( 'plotclick', function( event, pos, item )
+			// Require the 'clickableFill' option
+			if ( plot.getOptions().grid.clickableFill )
 			{
-				var areas = isHoveringOverFilledArea( pos.x, pos.y );
-				if ( areas.length > 0 )
+				// Bind to the plotclick event. This way the 'clickable' attribute
+				// is taken into account.
+				$( plot.getPlaceholder() ).bind( 'plotclick', function( event, pos, item )
 				{
-					$( plot.getPlaceholder() ).trigger( 'fillareaclick', [ areas ] );
-				}
-			} );
+					var areas = isHoveringOverFilledArea( pos.x, pos.y );
+					if ( areas.length > 0 )
+					{
+						$( plot.getPlaceholder() ).trigger( 'fillareaclick', [ areas ] );
+					}
+				} );
+			}
 		}
 		
         plot.hooks.processDatapoints.push(computeFillBottoms);
