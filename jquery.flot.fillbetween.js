@@ -121,8 +121,11 @@ plugin, possibly some code could be shared.
             if (!other)
                 return;
 
-			// Create area polygons here
-			areaPolygons.push( createAreaPolygonFromSeries( s, other ) );
+			// Create area polygons here. Depend on hoverable/clickable option.
+			if ( plot.getOptions().grid.hoverableFill || plot.getOptions().grid.clickableFill )
+			{
+				areaPolygons.push( createAreaPolygonFromSeries( s, other ) );
+			}
 				
             var ps = datapoints.pointsize,
                 points = datapoints.points,
