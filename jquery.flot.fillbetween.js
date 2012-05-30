@@ -50,7 +50,7 @@ plugin, possibly some code could be shared.
 			};
 		};
 	
-		function createAreaPolygonFromSeries( topSeries, bottomSeries )
+		function createAreaPolygonFromDatapoints( datapoints, s1, s2 )
 		{
 			/**
 			 * Creates a read-only polygon object with only getter methods.
@@ -72,23 +72,42 @@ plugin, possibly some code could be shared.
 				};
 			};
 			
-			var outline = [];
+			var outline = []; // Top data points in normal order
+			var bottomOutline = []; // Gather bottom data points for later reversing
+			var prevNull = false; // Previous datapoint was null?
 			
-			// Top data points in normal order
-			for ( var i in topSeries.data )
+			for ( var i = 0; i < datapoints.points.length; i += datapoints.pointsize )
 			{
-				var topDatapoint = topSeries.data[ i ];
-				outline.push( immutablePoint( topDatapoint[ 0 ], topDatapoint[ 1 ] ) );
+				var x = datapoints.points[ i ];
+				var topy = datapoints.points[ i + 1 ];
+				var bottomy = datapoints.points[ i + datapoints.pointsize - 1 ];
+				
+				if ( x === null )
+				{
+					outline.push( immutablePoint( 
+						bottomOutline[ bottomOutline.length - 1 ].getX(), 
+						bottomOutline[ bottomOutline.length - 1 ].getY() ) );
+					prevNull = true;
+				}
+				else
+				{
+					if ( prevNull )
+					{
+						// Previous datapoint was null. Produce an additional
+						// segment for the top outline in order to have the polygon
+						// run at zero width through the gap area.
+						outline.push( immutablePoint( x, bottomy ) );
+					}
+				
+					outline.push( immutablePoint( x, topy ) );
+					bottomOutline.push( immutablePoint( x, bottomy ) );
+					prevNull = false;
+				}
+						
 			}
-			
-			// Bottom data points in reverse order (to produce a well-defined polygon)
-			for ( var j = bottomSeries.data.length - 1; j >= 0; --j )
-			{
-				var bottomDatapoint = bottomSeries.data[ j ];
-				outline.push( immutablePoint( bottomDatapoint[ 0 ], bottomDatapoint[ 1 ] ) );
-			}
-			
-			return immutableAreaPolygon( outline, arguments );
+
+			bottomOutline.reverse();
+			return immutableAreaPolygon( outline.concat( bottomOutline ), [ s1, s2 ] );
 		}
 	
 		// All the areas represented as polygons
@@ -121,12 +140,6 @@ plugin, possibly some code could be shared.
             if (!other)
                 return;
 
-			// Create area polygons here. Depend on hoverable/clickable option.
-			if ( plot.getOptions().grid.hoverableFill || plot.getOptions().grid.clickableFill )
-			{
-				areaPolygons.push( createAreaPolygonFromSeries( s, other ) );
-			}
-				
             var ps = datapoints.pointsize,
                 points = datapoints.points,
                 otherps = other.datapoints.pointsize,
@@ -236,6 +249,13 @@ plugin, possibly some code could be shared.
             }
 
             datapoints.points = newpoints;
+			
+			// Create area polygons here. Depend on hoverable/clickable option.
+			if ( plot.getOptions().grid.hoverableFill || plot.getOptions().grid.clickableFill )
+			{
+				// TODO: Create the polygon from the newpoints array
+				areaPolygons.push( createAreaPolygonFromDatapoints( datapoints, s, other ) );
+			}
         }
         
 		/**
