@@ -253,7 +253,6 @@ plugin, possibly some code could be shared.
 			// Create area polygons here. Depend on hoverable/clickable option.
 			if ( plot.getOptions().grid.hoverableFill || plot.getOptions().grid.clickableFill )
 			{
-				// TODO: Create the polygon from the newpoints array
 				areaPolygons.push( createAreaPolygonFromDatapoints( datapoints, s, other ) );
 			}
         }
