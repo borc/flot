@@ -349,7 +349,7 @@ plugin, possibly some code could be shared.
 					var areas = isHoveringOverFilledArea( pos.x, pos.y );
 					if ( areas.length > 0 )
 					{
-						$( plot.getPlaceholder() ).trigger( 'fillareahover', [ areas ] );
+						$( plot.getPlaceholder() ).trigger( 'fillareahover', [ pos, areas ] );
 					}
 				} );
 			}
@@ -364,7 +364,7 @@ plugin, possibly some code could be shared.
 					var areas = isHoveringOverFilledArea( pos.x, pos.y );
 					if ( areas.length > 0 )
 					{
-						$( plot.getPlaceholder() ).trigger( 'fillareaclick', [ areas ] );
+						$( plot.getPlaceholder() ).trigger( 'fillareaclick', [ pos, areas ] );
 					}
 				} );
 			}
